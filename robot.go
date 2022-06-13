@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/opensourceways/community-robot-lib/gitlabclient"
-	framework "github.com/opensourceways/community-robot-lib/robot-gitlab-framework"
 	"github.com/opensourceways/community-robot-lib/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/xanzy/go-gitlab"
@@ -32,41 +31,17 @@ type iClient interface {
 	AddIssueLabels(projectID interface{}, issueID int, labels gitlab.Labels) error
 }
 
-func newRobot(cli iClient) *robot {
-	return &robot{cli: cli}
+func newRobot(cli iClient, gc func() (*configuration, error)) *robot {
+	return &robot{getConfig: gc, cli: cli}
 }
 
 type robot struct {
-	cli iClient
+	agent     *config.ConfigAgent
+	getConfig func() (*configuration, error)
+	cli       iClient
 }
 
-func (bot *robot) NewConfig() config.Config {
-	return &configuration{}
-}
-
-func (bot *robot) RobotName() string {
-	return botName
-}
-
-func (bot *robot) getConfig(cfg config.Config, org, repo string) (*botConfig, error) {
-	c, ok := cfg.(*configuration)
-	if !ok {
-		return nil, fmt.Errorf("can't convert to configuration")
-	}
-
-	if bc := c.configFor(org, repo); bc != nil {
-		return bc, nil
-	}
-
-	return nil, fmt.Errorf("no config for this repo: %s/%s", org, repo)
-}
-
-func (bot *robot) RegisterEventHandler(f framework.HandlerRegister) {
-	f.RegisterMergeEventHandler(bot.handleMergeEvent)
-	f.RegisterIssueHandler(bot.handleIssueEvent)
-}
-
-func (bot *robot) handleMergeEvent(e *gitlab.MergeEvent, c config.Config, log *logrus.Entry) error {
+func (bot *robot) handleMergeEvent(e *gitlab.MergeEvent, log *logrus.Entry) error {
 	if e.ObjectAttributes.Action != actionOpen {
 		return nil
 	}
@@ -76,13 +51,14 @@ func (bot *robot) handleMergeEvent(e *gitlab.MergeEvent, c config.Config, log *l
 	author := gitlabclient.GetMRAuthor(e)
 
 	org, repo := gitlabclient.GetMROrgAndRepo(e)
-	cfg, err := bot.getConfig(c, org, repo)
+	c, err := bot.getConfig()
 	if err != nil {
 		return err
 	}
+	botCfg := c.configFor(org, repo)
 
 	return bot.handle(
-		org, repo, author, projectID, cfg, log,
+		org, repo, author, projectID, botCfg, log,
 
 		func(c string) error {
 			return bot.cli.CreateMergeRequestComment(projectID, mrNumber, c)
@@ -94,7 +70,7 @@ func (bot *robot) handleMergeEvent(e *gitlab.MergeEvent, c config.Config, log *l
 	)
 }
 
-func (bot *robot) handleIssueEvent(e *gitlab.IssueEvent, c config.Config, log *logrus.Entry) error {
+func (bot *robot) handleIssueEvent(e *gitlab.IssueEvent, log *logrus.Entry) error {
 	if e.ObjectAttributes.Action != actionOpen {
 		return nil
 	}
@@ -102,13 +78,14 @@ func (bot *robot) handleIssueEvent(e *gitlab.IssueEvent, c config.Config, log *l
 	projectID := e.Project.ID
 	number := gitlabclient.GetIssueNumber(e)
 	author := gitlabclient.GetIssueAuthor(e)
-	cfg, err := bot.getConfig(c, org, repo)
+	c, err := bot.getConfig()
 	if err != nil {
 		return err
 	}
+	botCfg := c.configFor(org, repo)
 
 	return bot.handle(
-		org, repo, author, projectID, cfg, log,
+		org, repo, author, projectID, botCfg, log,
 
 		func(c string) error {
 			return bot.cli.CreateIssueComment(projectID, number, c)
