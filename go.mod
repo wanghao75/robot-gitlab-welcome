@@ -8,4 +8,4 @@ require (
 	github.com/xanzy/go-gitlab v0.68.0
 )
 
-replace github.com/opensourceways/community-robot-lib v0.0.0-20220601095908-2ae7d01779ac => C:\Users\Administrator\Desktop\tmp\community-robot-lib
+replace github.com/opensourceways/community-robot-lib v0.0.0-20220601095908-2ae7d01779ac => C:\Users\Administrator\Desktop\tmp\fixpods\community-robot-lib

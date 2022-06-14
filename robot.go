@@ -41,7 +41,7 @@ type robot struct {
 	cli       iClient
 }
 
-func (bot *robot) handleMergeEvent(e *gitlab.MergeEvent, log *logrus.Entry) error {
+func (bot *robot) HandleMergeEvent(e *gitlab.MergeEvent, log *logrus.Entry) error {
 	if e.ObjectAttributes.Action != actionOpen {
 		return nil
 	}
@@ -70,7 +70,7 @@ func (bot *robot) handleMergeEvent(e *gitlab.MergeEvent, log *logrus.Entry) erro
 	)
 }
 
-func (bot *robot) handleIssueEvent(e *gitlab.IssueEvent, log *logrus.Entry) error {
+func (bot *robot) HandleIssueEvent(e *gitlab.IssueEvent, log *logrus.Entry) error {
 	if e.ObjectAttributes.Action != actionOpen {
 		return nil
 	}
