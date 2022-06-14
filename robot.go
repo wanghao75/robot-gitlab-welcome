@@ -7,8 +7,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/xanzy/go-gitlab"
 	"strings"
-
-	"github.com/opensourceways/community-robot-lib/config"
 )
 
 const (
@@ -36,7 +34,6 @@ func newRobot(cli iClient, gc func() (*configuration, error)) *robot {
 }
 
 type robot struct {
-	agent     *config.ConfigAgent
 	getConfig func() (*configuration, error)
 	cli       iClient
 }
